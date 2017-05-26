@@ -10,6 +10,7 @@ defined( 'ABSPATH' ) or die( 'Cheatin\' uh?' );
 add_action( 'wp_ajax_imagify_manual_upload'		, '_do_admin_post_imagify_manual_upload' );
 add_action( 'admin_post_imagify_manual_upload'	, '_do_admin_post_imagify_manual_upload' );
 function _do_admin_post_imagify_manual_upload() {
+	error_log("man I love/hate my car so much");
 	if ( defined( 'DOING_AJAX' ) ) {
 		check_ajax_referer( 'imagify-manual-upload' );
 	} else {
@@ -23,20 +24,20 @@ function _do_admin_post_imagify_manual_upload() {
 			wp_nonce_ays( '' );
 		}
 	}
-	
+
 	$context	   = $_GET['context'];
 	$attachment_id = $_GET['attachment_id'];
 	$class_name    = get_imagify_attachment_class_name( $_GET['context'] );
 	$attachment    = new $class_name( $attachment_id );
-		
+
 	// Optimize it!!!!!
 	$attachment->optimize();
-	
+
 	if ( ! defined( 'DOING_AJAX' ) ) {
 		wp_safe_redirect( wp_get_referer() );
 		die();
 	}
-	
+
 	// Return the optimization statistics
 	$output = get_imagify_attachment_optimization_text( $attachment, $context );
 	wp_send_json_success( $output );
@@ -51,6 +52,7 @@ function _do_admin_post_imagify_manual_upload() {
 add_action( 'wp_ajax_imagify_manual_override_upload', '_do_admin_post_imagify_manual_override_upload' );
 add_action( 'admin_post_imagify_manual_override_upload', '_do_admin_post_imagify_manual_override_upload' );
 function _do_admin_post_imagify_manual_override_upload() {
+	error_log("automatics are for pussies");
 	if ( defined( 'DOING_AJAX' ) ) {
 		check_ajax_referer( 'imagify-manual-override-upload' );
 	} else {
@@ -64,11 +66,11 @@ function _do_admin_post_imagify_manual_override_upload() {
 			wp_nonce_ays( '' );
 		}
 	}
-	
+
 	$context     = $_GET['context'];
 	$class_name  = get_imagify_attachment_class_name( $context );
 	$attachment  = new $class_name( $_GET['attachment_id'] );
-		
+
 	// Restore the backup file
 	$attachment->restore();
 
@@ -94,6 +96,7 @@ function _do_admin_post_imagify_manual_override_upload() {
 add_action( 'wp_ajax_imagify_restore_upload', '_do_admin_post_imagify_restore_upload' );
 add_action( 'admin_post_imagify_restore_upload', '_do_admin_post_imagify_restore_upload' );
 function _do_admin_post_imagify_restore_upload() {
+	error_log("restore upload");
 	if ( defined( 'DOING_AJAX' ) ) {
 		check_ajax_referer( 'imagify-restore-upload' );
 	} else {
@@ -107,13 +110,13 @@ function _do_admin_post_imagify_restore_upload() {
 			wp_nonce_ays( '' );
 		}
 	}
-	
+
 	$class_name = get_imagify_attachment_class_name( $_GET['context'] );
 	$attachment = new $class_name( $_GET['attachment_id'] );
-	
+
 	// Restore the backup file
 	$attachment->restore();
-	
+
 	if ( ! defined( 'DOING_AJAX' ) ) {
 		wp_safe_redirect( wp_get_referer() );
 		die();
@@ -132,28 +135,29 @@ function _do_admin_post_imagify_restore_upload() {
  */
 add_action( 'wp_ajax_imagify_get_unoptimized_attachment_ids', '_do_wp_ajax_imagify_get_unoptimized_attachment_ids' );
 function _do_wp_ajax_imagify_get_unoptimized_attachment_ids() {
+	error_log("GET ALL THE IDs");
 	check_ajax_referer( 'imagify-bulk-upload', 'imagifybulkuploadnonce' );
 
 	if ( ! current_user_can( 'upload_files' ) ) {
 		wp_send_json_error();
 	}
-	
+
 	if ( ! imagify_valid_key() ) {
 		wp_send_json_error( array( 'message' => 'invalid-api-key' ) );
 	}
-	
+
 	$user = new Imagify_User();
-	
+
 	if ( $user->is_over_quota() ) {
 		wp_send_json_error( array( 'message' => 'over-quota' ) );
 	}
-	
+
 	@set_time_limit( 0 );
-	
+
 	$optimization_level = $_GET['optimization_level'];
 	$optimization_level = ( -1 != $optimization_level ) ? $optimization_level : get_imagify_option( 'optimization_level', 1 );
 	$optimization_level = (int) $optimization_level;
-	
+
 	$meta_query = array(
 		'relation' => 'OR',
 		array(
@@ -171,7 +175,7 @@ function _do_wp_ajax_imagify_get_unoptimized_attachment_ids() {
 			'compare' => '='
 		),
 	);
-	
+
 	/**
 	 * Filter the unoptimized attachments limit query
 	 *
@@ -180,7 +184,7 @@ function _do_wp_ajax_imagify_get_unoptimized_attachment_ids() {
 	 * @param int The limit (-1 for unlimited)
 	 */
 	$unoptimized_attachment_limit = apply_filters( 'imagify_unoptimized_attachment_limit', 10000 );
-	
+
 	$args = array(
 		'fields'                 => 'ids',
 		'post_type'              => 'attachment',
@@ -193,9 +197,9 @@ function _do_wp_ajax_imagify_get_unoptimized_attachment_ids() {
 		'no_found_rows'          => true,
 		'update_post_term_cache' => false,
 	);
-	
+
 	global $wpdb;
-	
+
 	$data        = array();
 	$attachments = new WP_Query( $args );
 	$ids         = $attachments->posts;
@@ -205,63 +209,64 @@ function _do_wp_ajax_imagify_get_unoptimized_attachment_ids() {
 	if ( empty( $sql_ids ) ) {
 		wp_send_json_error( array( 'message' => 'no-images' ) );
 	}
-	
+
 	// Get attachments filename
-	$attachments_filename = $wpdb->get_results( 
+	$attachments_filename = $wpdb->get_results(
 		"SELECT pm.post_id as id, pm.meta_value as value
 		 FROM $wpdb->postmeta as pm
 		 WHERE pm.meta_key= '_wp_attached_file'
 		 	   AND pm.post_id IN ($sql_ids)
 		 ORDER BY pm.post_id DESC"
-		 , ARRAY_A	
+		 , ARRAY_A
 	);
-	
-	$attachments_filename = imagify_query_results_combine( $ids, $attachments_filename );	
-	
+
+	$attachments_filename = imagify_query_results_combine( $ids, $attachments_filename );
+
 	// Get attachments data
-	$attachments_data = $wpdb->get_results( 
+	$attachments_data = $wpdb->get_results(
 		"SELECT pm.post_id as id, pm.meta_value as value
 		 FROM $wpdb->postmeta as pm
 		 WHERE pm.meta_key= '_imagify_data'
 		 	   AND pm.post_id IN ($sql_ids)
 		 ORDER BY pm.post_id DESC"
-		 , ARRAY_A	
+		 , ARRAY_A
 	);
-	
-	$attachments_data = imagify_query_results_combine( $ids, $attachments_data );	
+
+	$attachments_data = imagify_query_results_combine( $ids, $attachments_data );
 	$attachments_data = array_map( 'maybe_unserialize', $attachments_data );
-	
+
 	// Get attachments optimization level
-	$attachments_optimization_level = $wpdb->get_results( 
+	$attachments_optimization_level = $wpdb->get_results(
 		"SELECT pm.post_id as id, pm.meta_value as value
 		 FROM $wpdb->postmeta as pm
 		 WHERE pm.meta_key= '_imagify_optimization_level'
 		 	   AND pm.post_id IN ($sql_ids)
 		 ORDER BY pm.post_id DESC"
-		, ARRAY_A		
+		, ARRAY_A
 	);
-	
+
 	$attachments_optimization_level = imagify_query_results_combine( $ids, $attachments_optimization_level );
-	
+
 	// Get attachments status
-	$attachments_status = $wpdb->get_results( 
+	$attachments_status = $wpdb->get_results(
 		"SELECT pm.post_id as id, pm.meta_value as value
 		 FROM $wpdb->postmeta as pm
 		 WHERE pm.meta_key= '_imagify_status'
 		 	   AND pm.post_id IN ($sql_ids)
 		 ORDER BY pm.post_id DESC"
-		, ARRAY_A		
+		, ARRAY_A
 	);
-	
+
 	$attachments_status = imagify_query_results_combine( $ids, $attachments_status );
-	
+
 	// Save the optimization level in a transient to retrieve it later during the process
 	set_transient( 'imagify_bulk_optimization_level', $optimization_level );
-	
+
+	error_log("before foreach: size-" . count($ids));
 	foreach( $ids as $id ) {
 		/** This filter is documented in inc/functions/process.php */
 		$file_path = apply_filters( 'imagify_file_path', get_imagify_attached_file( $attachments_filename[ $id ] ) );
-		
+
 		if ( file_exists( $file_path ) ) {
 			$attachment_data  = ( isset( $attachments_data[ $id ] ) ) ? $attachments_data[ $id ] : false;
 			$attachment_error = '';
@@ -269,40 +274,40 @@ function _do_wp_ajax_imagify_get_unoptimized_attachment_ids() {
 			if ( isset( $attachment_data['sizes']['full']['error'] ) ) {
 				$attachment_error = $attachment_data['sizes']['full']['error'];
 			}
-			
+
 			$attachment_error              = trim( $attachment_error );
 			$attachment_status             = ( isset( $attachments_status[ $id ] ) ) ? $attachments_status[ $id ] : false;
 			$attachment_optimization_level = ( isset( $attachments_optimization_level[ $id ] ) ) ? $attachments_optimization_level[ $id ] : false;
 			$attachment_backup_path 	   = get_imagify_attachment_backup_path( $file_path );
-			
+
 			// Don't try to re-optimize if the optimization level is still the same
 			if ( $optimization_level === $attachment_optimization_level && is_string( $attachment_error ) ) {
-				continue;					
+				continue;
 			}
-			
+
 			// Don't try to re-optimize if there is no backup file
 			if ( $optimization_level !== $attachment_optimization_level && ! file_exists( $attachment_backup_path ) && $attachment_status == 'success' ) {
-				continue;					
+				continue;
 			}
-			
+
 			// Don't try to re-optimize images already compressed
 			if ( $attachment_optimization_level >= $optimization_level && $attachment_status == 'already_optimized' ) {
-				continue;	
+				continue;
 			}
-			
+
 			// Don't try to re-optimize images with an empty error message
 			if ( $attachment_status == 'error' && empty( $attachment_error ) ) {
 				continue;
 			}
-									
+
 			$data[ '_' . $id ] = get_imagify_attachment_url( $attachments_filename[ $id ] );
-		}		
+		}
 	}
-	
+
 	if ( (bool) $data ) {
 		wp_send_json_success( $data );
 	}
-		
+
 	wp_send_json_error( array( 'message' => 'no-images' ) );
 }
 
@@ -314,37 +319,44 @@ function _do_wp_ajax_imagify_get_unoptimized_attachment_ids() {
  */
 add_action( 'wp_ajax_imagify_bulk_upload', '_do_wp_ajax_imagify_bulk_upload' );
 function _do_wp_ajax_imagify_bulk_upload() {
+	error_log("bulk upload norm");
 	check_ajax_referer( 'imagify-bulk-upload', 'imagifybulkuploadnonce' );
-	
+
 	if ( ! isset( $_POST['image'], $_POST['context'] ) || ! current_user_can( 'upload_files' ) ) {
 		wp_send_json_error();
 	}
-	
+
 	$class_name         = get_imagify_attachment_class_name( $_POST['context'] );
 	$attachment         = new $class_name( $_POST['image'] );
 	$optimization_level = get_transient( 'imagify_bulk_optimization_level' );
-	
+
+	error_log("before restore?");
+
 	// Restore it if the optimization level is updated
 	if ( $optimization_level !== $attachment->get_optimization_level() ) {
 		$attachment->restore();
 	}
-	
+
 	// Optimize it!!!!!
 	$attachment->optimize( $optimization_level );
+
+	error_log("before return");
 
 	// Return the optimization statistics
 	$fullsize_data         = $attachment->get_size_data();
 	$stats_data            = $attachment->get_stats_data();
 	$user		   		   = new Imagify_User();
 	$data                  = array();
-	
+
 	if ( ! $attachment->is_optimized() ) {
 		$data['success'] = false;
 		$data['error']   = $fullsize_data['error'];
-		
-		wp_send_json_error( $data );
+
+		wp_send_json_error( $data ); // so this is not necessarily a problem...
 	}
-	
+
+	error_log("gg");
+
 	$data['success']               = true;
 	$data['original_size']         = $fullsize_data['original_size'];
 	$data['new_size']              = $fullsize_data['optimized_size'];
@@ -353,7 +365,7 @@ function _do_wp_ajax_imagify_bulk_upload() {
 	$data['original_overall_size'] = $stats_data['original_size'];
 	$data['new_overall_size']      = $stats_data['optimized_size'];
 	$data['thumbnails']            = $attachment->get_optimized_sizes_count();
-		
+
 	wp_send_json_success( $data );
 }
 
@@ -365,6 +377,7 @@ function _do_wp_ajax_imagify_bulk_upload() {
  */
 add_action( 'wp_ajax_imagify_signup', '_do_wp_ajax_imagify_signup' );
 function _do_wp_ajax_imagify_signup() {
+	error_log("signup baby");
 	check_ajax_referer( 'imagify-signup', 'imagifysignupnonce' );
 
 	if ( ! isset( $_GET['email'] ) ) {
@@ -405,7 +418,7 @@ function _do_wp_ajax_imagify_check_api_key_validity() {
 	if ( is_wp_error( $response ) ) {
 		wp_send_json_error( $response->get_error_message() );
 	}
-	
+
 	$options            = get_site_option( IMAGIFY_SETTINGS_SLUG );
 	$options['api_key'] = sanitize_key( $_GET['api_key'] );
 
@@ -436,11 +449,11 @@ function _do_admin_post_imagify_dismiss_notice() {
 			wp_nonce_ays( '' );
 		}
 	}
-	
+
 	$notice = $_GET['notice'];
 
 	imagify_dismiss_notice( $notice );
-	
+
 	/**
 	 * Fires when a notice is dismissed.
 	 *
@@ -449,12 +462,12 @@ function _do_admin_post_imagify_dismiss_notice() {
 	 * @param int $notice The notice slug
 	*/
 	do_action( 'imagify_dismiss_notice', $notice );
-	
+
 	if ( ! defined( 'DOING_AJAX' ) ) {
 		wp_safe_redirect( wp_get_referer() );
 		die();
 	}
-	
+
 	wp_send_json_success();
 }
 
@@ -484,8 +497,9 @@ function _imagify_deactivate_plugin() {
  */
 add_action( 'wp_ajax_imagify_get_admin_bar_profile', '_do_wp_ajax_imagify_get_admin_bar_profile' );
 function _do_wp_ajax_imagify_get_admin_bar_profile() {
+	error_log("get admin bar profile");
 	check_ajax_referer( 'imagify-get-admin-bar-profile', 'imagifygetadminbarprofilenonce' );
-	
+
 	$user 			  = new Imagify_User();
 	$unconsumed_quota = $user->get_percent_unconsumed_quota();
 	$meteo_icon       =  '<img src="' . IMAGIFY_ASSETS_IMG_URL . 'sun.svg" width="37" height="38" alt="" />';
@@ -561,7 +575,7 @@ function _do_wp_ajax_imagify_get_admin_bar_profile() {
 			</p>
 		</div>
 		' . $message;
-	
+
 	wp_send_json_success( $quota_section );
 }
 
@@ -573,12 +587,13 @@ function _do_wp_ajax_imagify_get_admin_bar_profile() {
  **/
 add_action( 'wp_ajax_imagify_async_optimize_upload_new_media', '_do_admin_post_async_optimize_upload_new_media' );
 function _do_admin_post_async_optimize_upload_new_media() {
+	error_log("post async optimize upload new media");
 	if ( isset( $_POST['_ajax_nonce'], $_POST['attachment_id'], $_POST['metadata'], $_POST['context'] )
 		&& check_ajax_referer( 'new_media-' . $_POST['attachment_id'] )
-	) {		
+	) {
 		$class_name = get_imagify_attachment_class_name( $_POST['context'] );
 		$attachment = new $class_name( $_POST['attachment_id'] );
-		
+
 		// Optimize it!!!!!
 		$attachment->optimize( null, $_POST['metadata'] );
 
@@ -593,16 +608,17 @@ function _do_admin_post_async_optimize_upload_new_media() {
  **/
 add_action( 'wp_ajax_imagify_async_optimize_save_image_editor_file', '_do_admin_post_async_optimize_save_image_editor_file' );
 function _do_admin_post_async_optimize_save_image_editor_file() {
+	error_log("post async optimize save image editor file");
 	if ( isset( $_POST['do'], $_POST['postid'] )
 		&& check_ajax_referer( 'image_editor-' . $_POST['postid'] )
 		&& get_post_meta( $_POST['postid'], '_imagify_data', true )
 	) {
-		
+
 		$attachment_id      = $_POST['postid'];
 		$optimization_level = get_post_meta( $attachment_id, '_imagify_optimization_level', true );
 		$attachment         = new Imagify_Attachment( $attachment_id );
 		$metadata			= wp_get_attachment_metadata( $attachment_id );
-		
+
 		// Remove old optimization data
 		delete_post_meta( $attachment_id, '_imagify_data' );
 		delete_post_meta( $attachment_id, '_imagify_status' );
@@ -611,11 +627,11 @@ function _do_admin_post_async_optimize_save_image_editor_file() {
 		if ( 'restore' === $_POST['do'] ) {
 			// Restore the backup file
 			$attachment->restore();
-			
+
 			// Get old metadata to regenerate all thumbnails
 			$metadata 	  = array( 'sizes' => array() );
 			$backup_sizes = (array) get_post_meta( $attachment_id, '_wp_attachment_backup_sizes', true );
-			
+
 			foreach ( $backup_sizes as $size_key => $size_data ) {
 				$size_key = str_replace( '-origin', '' , $size_key );
 				$metadata['sizes'][ $size_key ] = $size_data;
@@ -639,8 +655,9 @@ function _do_admin_post_async_optimize_save_image_editor_file() {
  */
 add_action( 'wp_ajax_imagify_get_prices', '_imagify_get_prices_from_api' );
 function _imagify_get_prices_from_api() {
+	error_log("get prices from api");
 	if ( check_ajax_referer( 'imagify_get_pricing_' . get_current_user_id(), 'imagifynonce', false) ) {
-		
+
 		$prices = array();
 		$prices_all = get_imagify_all_prices();
 
@@ -668,8 +685,9 @@ function _imagify_get_prices_from_api() {
  */
 add_action( 'wp_ajax_imagify_check_coupon', '_imagify_check_coupon_code' );
 function _imagify_check_coupon_code() {
+	error_log('fucking coupon code');
 	if ( check_ajax_referer( 'imagify_get_pricing_' . get_current_user_id(), 'imagifynonce', false) ) {
-		
+
 		$coupon_response = check_imagify_coupon_code( $_POST[ 'coupon' ] );
 
 		wp_send_json_success( $coupon_response );
@@ -688,6 +706,7 @@ function _imagify_check_coupon_code() {
  */
 add_action( 'wp_ajax_imagify_get_images_counts', '_imagify_get_estimated_sizes' );
 function _imagify_get_estimated_sizes() {
+	error_log("get_esimated_sizes");
 	if ( check_ajax_referer( 'imagify_get_pricing_' . get_current_user_id(), 'imagifynonce', false) ) {
 
 		$raw_total_size_in_library = imagify_calculate_total_size_images_library();
@@ -717,6 +736,7 @@ function _imagify_get_estimated_sizes() {
  */
 add_action( 'wp_ajax_imagify_get_discount', '_imagify_get_discount' );
 function _imagify_get_discount() {
+	error_log("imagify_get_discount");
 	if ( check_ajax_referer( 'imagify_get_pricing_' . get_current_user_id(), 'imagifynonce', false) ) {
 		$discount = check_imagify_discount();
 		wp_send_json_success( $discount );
@@ -733,19 +753,20 @@ function _imagify_get_discount() {
  */
 add_action( 'wp_ajax_imagify_update_estimate_sizes', '_imagify_update_estimate_sizes' );
 function _imagify_update_estimate_sizes() {
-    if ( ! isset( $_POST['_ajax_nonce'] ) ) {
-        die();
-    }
+	error_log("doing size estimation");
+	if ( ! isset( $_POST['_ajax_nonce'] ) ) {
+		die();
+	}
 
-    if ( ! check_ajax_referer( 'update_estimate_sizes' ) ) {
-       die(); 
-    }
+	if ( ! check_ajax_referer( 'update_estimate_sizes' ) ) {
+		die();
+	}
 
-    $raw_total_size_in_library = imagify_calculate_total_size_images_library();
-    $raw_average_per_month     = imagify_calculate_average_size_images_per_month();
+	$raw_total_size_in_library = imagify_calculate_total_size_images_library();
+	$raw_average_per_month     = imagify_calculate_average_size_images_per_month();
 
-    update_imagify_option( 'total_size_images_library', array( 'raw' => $raw_total_size_in_library, 'human' => size_format( $raw_total_size_in_library ) ) );
-    update_imagify_option( 'average_size_images_per_month', array( 'raw' => $raw_average_per_month, 'human' => size_format( $raw_average_per_month ) ) );
+	update_imagify_option( 'total_size_images_library', array( 'raw' => $raw_total_size_in_library, 'human' => size_format( $raw_total_size_in_library ) ) ); // heh, human
+	update_imagify_option( 'average_size_images_per_month', array( 'raw' => $raw_average_per_month, 'human' => size_format( $raw_average_per_month ) ) );
 
-    die( 1 );
+	die( 1 );
 }

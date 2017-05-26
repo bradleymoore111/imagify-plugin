@@ -43,46 +43,46 @@ jQuery(function($){
 			tooltipTemplate: "<%= value %>"
 		});
 
-		//then you just need to generate the legend 
+		//then you just need to generate the legend
 		//var overviewLegend = overviewDoughnut.generateLegend();
 		//bugged `segments undefined` ?
 
 		//and append it to your page somewhere
 		overviewLegend = '<ul class="imagify-doughnut-legend">';
-		
+
 		$(overviewData).each(function(i){
 			overviewLegend += '<li><span style="background-color:' + overviewData[i].color + '"></span>' + overviewData[i].label + '</li>';
 		});
 
 		overviewLegend += '</ul>';
-		
+
 		document.getElementById("imagify-overview-chart-legend").innerHTML = overviewLegend;
 	}
-	
+
 	// Heartbeat
 	$(document).on('heartbeat-send', function(e, data) {
         data['imagify_heartbeat'] = imagifyBulk.heartbeat_id;
     });
-	
+
 	// Listen for the custom event "heartbeat-tick" on $(document).
     $(document).on( 'heartbeat-tick', function(e, data) {
         if ( ! data['imagify_bulk_data'] ) {
             return;
         }
-        
+
         data = data['imagify_bulk_data'];
-        
+
         // The overview chart percent
 		$('#imagify-overview-chart-percent').html(data.optimized_attachments_percent + '<span>%</span>');
 		$('.imagify-total-percent').html(data.optimized_attachments_percent + '%' );
-		
+
 		// The comsuption bar
 		$('.imagify-unconsumed-percent').html(data.unconsumed_quota + '%');
 		$('.imagify-unconsumed-bar').css('width', data.unconsumed_quota + '%');
 
 		// The total optimized images
 		$('#imagify-total-optimized-attachments').html(data.already_optimized_attachments);
-		
+
 		// The original bar
 		$('#imagify-original-bar').find('.imagify-barnb')
 								  .html(data.original_human);
@@ -108,26 +108,28 @@ jQuery(function($){
 	});
 
 	$('#imagify-bulk-action').click(function(){
+		console.log("clicked");
+
 		var $obj = $(this),
 			$optimization_level = $('[name="optimization_level"]:checked').val();
 
 		if (typeof $optimization_level === "undefined") {
 		    $optimization_level = -1;
 		}
-		
+
 		if ( $obj.attr('disabled') ) {
 			return false;
 		}
 
 		$obj.attr('disabled', 'disabled');
 		$obj.find('.dashicons').addClass('rotate');
-		
-		
+
+
 		confirmMessage =  function(){
 			return imagifyBulk.labels.processing;
 		};
 		$(window).on('beforeunload', confirmMessage);
-		
+
 		// Display an alert to wait
 		swal({
 			title:imagifyBulk.labels.waitTitle,
@@ -135,33 +137,33 @@ jQuery(function($){
 			showConfirmButton: false,
 			imageUrl: imagifyBulk.labels.waitImageUrl
 		});
-		
+
 		$.get(ajaxurl+concat+"action="+imagifyBulk.ajax_action+"&optimization_level="+$optimization_level+"&imagifybulkuploadnonce="+$('#imagifybulkuploadnonce').val())
 		.done(function(response) {
 			if( !response.success ) {
 				$obj.removeAttr('disabled');
 				$obj.find('.dashicons').removeClass('rotate');
-				
+
 				swal_title = '';
 				swal_text  = '';
-				
+
 				// remove confirm dialog before quit the page
 				$(window).off('beforeunload', confirmMessage);
-								
+
 				if ( response.data.message == 'invalid-api-key' ) {
 					swal_title = imagifyBulk.labels.invalidAPIKeyTitle;
 				}
-				
+
 				if ( response.data.message == 'over-quota' ) {
 					swal_title = imagifyBulk.labels.overQuotaTitle;
 					text  = imagifyBulk.labels.overQuotaText;
 				}
-				
+
 				if ( response.data.message == 'no-images' ) {
 					swal_title = imagifyBulk.labels.noAttachmentToOptimizeTitle;
 					swal_text  = imagifyBulk.labels.noAttachmentToOptimizeText;
 				}
-				
+
 				// Display an alert to warn that all images has been optimized
 				swal({
 					title: swal_title,
@@ -170,14 +172,18 @@ jQuery(function($){
 					customClass: "imagify-sweet-alert"
 				});
 
-			} else {				
+			} else {
 				swal.close();
-
 				var config = {
 					'lib': ajaxurl+concat+"action=imagify_bulk_upload&imagifybulkuploadnonce="+$('#imagifybulkuploadnonce').val(),
 					'images': response.data,
 					'context': imagifyBulk.ajax_context
 				}
+
+				//config['lib'] = "/wp-json/imagify/v1/bulk_upload?imagifybulkuploadnonce=" + $('#imagifybulkuploadnonce').val(), // makes it rest-like
+
+				console.log(config);
+				// return;
 
 				var table  = $('.imagify-bulk-table table tbody'),
 					files  = 0,
@@ -188,14 +194,16 @@ jQuery(function($){
 				$('.imagify-row-progress').slideDown();
 				$('.imagify-no-uploaded-yet, .imagify-row-complete').hide(200);
 
-				Optimizer = new ImagifyGulp(config);
+				Optimizer = new ImagifyGulp(config); // looks like this is the thing that handles everything
 
 				// before the attachment optimization
 				Optimizer.before(function(data) {
+					console.log("me llamo t-bone");
 					table.find('.imagify-row-progress').after('<tr id="attachment-'+data.id+'"><td class="imagify-cell-filename"><span class="imagiuploaded"><img src="'+data.thumbnail+'"/>"</span><span class="imagifilename">'+data.filename+'</span></td><td class="imagify-cell-status"><span class="imagistatus status-compressing"><span class="dashicons dashicons-admin-generic rotate"></span>Compressing<span></span></span></td><td class="imagify-cell-original"></td><td class="imagify-cell-optimized"></td><td class="imagify-cell-percentage"></td><td class="imagify-cell-thumbnails"></td><td class="imagify-cell-savings"></td></tr>');
 				})
 				// after the attachment optimization
 				.each(function (data) {
+					console.log("hola, como estas");
 					var $progress = $('#imagify-progress-bar');
 					$progress.css({'width': data.progress + '%'});
 					$progress.find('.percent').html(data.progress + '%');
@@ -225,7 +233,7 @@ jQuery(function($){
 						error_class     = 'error';
 						error_dashicon  = 'dismiss';
 						error_message   = 'Error';
-												
+
 						if ( data.error.indexOf("You've consumed all your data") >= 0 ) {
 							swal({
 								title: imagifyBulk.labels.overQuotaTitle,
@@ -236,7 +244,7 @@ jQuery(function($){
 								location.reload();
 							});
 						}
-						
+
 						if ( data.error.indexOf("This image is already compressed") >=0 ) {
 							error_class    = 'warning';
 							error_dashicon = 'warning';
@@ -245,14 +253,15 @@ jQuery(function($){
 							errors++;
 							$('.imagify-cell-errors').html(errors + ' error(s)');
 						}
-						
+
 						$('#attachment-'+data.image).after('<tr><td colspan="7"><span class="status-'+error_class+'">'+data.error+'</span></td></tr>');
-						
-						$('#attachment-'+data.image+' .imagify-cell-status').html('<span class="imagistatus status-'+error_class+'"><span class="dashicons dashicons-'+error_dashicon+'"></span>'+error_message+'</span>');			
+
+						$('#attachment-'+data.image+' .imagify-cell-status').html('<span class="imagistatus status-'+error_class+'"><span class="dashicons dashicons-'+error_dashicon+'"></span>'+error_message+'</span>');
 					}
 				})
 				// after all attachments optimization
 				.done(function (data) {
+					console.log("la arana discoteca");
 					$obj.removeAttr('disabled');
 					$obj.find('.dashicons').removeClass('rotate');
 
@@ -280,7 +289,7 @@ jQuery(function($){
 						text2share = encodeURIComponent(text2share);
 
 						$('.imagify-sn-twitter').attr( 'href', 'https://twitter.com/intent/tweet?source=webclient&amp;original_referer=' + imagifyBulk.labels.pluginURL + '&amp;text=' + text2share + '&amp;url=' + imagifyBulk.labels.pluginURL + '&amp;related=imagify&amp;hastags=performance,web,wordpress' );
-						
+
 						$('.imagify-ac-chart').attr('data-percent', data.global_percent);
 						draw_me_complete_chart( $('.imagify-ac-chart').find('canvas') );
 					}

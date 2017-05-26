@@ -102,3 +102,8 @@ function _imagify_init() {
 	*/
 	do_action( 'imagify_loaded' );
 }
+
+add_action( 'after_setup_theme', '_imagify_rest_init' );
+function _imagify_rest_init() {
+  require_once( IMAGIFY_ADMIN_PATH   . 'rest-api.php' );
+}
