@@ -18,7 +18,7 @@ class Imagify_Attachment extends Imagify_Abstract_Attachment {
 			$this->id = (int) $id;
 		}
 	}
-	
+
 	/**
 	 * Get the attachment backup filepath.
 	 *
@@ -37,7 +37,7 @@ class Imagify_Attachment extends Imagify_Abstract_Attachment {
 
 		return false;
 	}
-	
+
 	/**
 	 * Get the attachment optimization data.
 	 *
@@ -49,7 +49,7 @@ class Imagify_Attachment extends Imagify_Abstract_Attachment {
 	public function get_data() {
 		return get_post_meta( $this->id, '_imagify_data', true );
 	}
-		
+
 	/**
 	 * Get the attachment optimization level.
 	 *
@@ -61,7 +61,7 @@ class Imagify_Attachment extends Imagify_Abstract_Attachment {
 	public function get_optimization_level() {
 		return get_post_meta( $this->id, '_imagify_optimization_level', true );
 	}
-	
+
 	/**
 	 * Get the attachment optimization status (success or error).
 	 *
@@ -110,14 +110,14 @@ class Imagify_Attachment extends Imagify_Abstract_Attachment {
 		if ( ! wp_attachment_is_image( $this->id ) ) {
 			return false;
 		}
-		
+
 		$size = @getimagesize( $this->get_original_path() );
-		
+
 		if ( isset( $size[0], $size[1] ) ) {
 			$metadata           = wp_get_attachment_metadata( $this->id );
 			$metadata['width']  = $size[0];
 			$metadata['height'] = $size[1];
-			
+
 			wp_update_attachment_metadata( $this->id, $metadata );
 		}
 	}
@@ -140,25 +140,25 @@ class Imagify_Attachment extends Imagify_Abstract_Attachment {
 		if ( is_wp_error( $response ) ) {
 			$error        = $response->get_error_message();
 			$error_status = 'error';
-			
+
 			$data['sizes'][ $size ] = array(
 				'success' => false,
 				'error'   => $error
 			);
-			
+
 			// Update the error status for the original size
 			if ( 'full' === $size ) {
 				update_post_meta( $id, '_imagify_data', $data );
-				
+
 				if ( false !== strpos( $error, 'This image is already compressed' ) ) {
-					$error_status = 'already_optimized';	
+					$error_status = 'already_optimized';
 				}
-				
+
 				update_post_meta( $id, '_imagify_status', $error_status );
-				
+
 				return false;
 			}
-		} else {			
+		} else {
 			$data['sizes'][ $size ] = array(
 				'success' 		 => true,
 				'file_url'		 => $url,
@@ -184,7 +184,7 @@ class Imagify_Attachment extends Imagify_Abstract_Attachment {
 	 * @param  array  $metadata   	   		The attachment meta data
 	 * @return array  $optimized_data  		The optimization data
 	 */
-	public function optimize( $optimization_level = null, $metadata = array() ) {		
+	public function optimize( $optimization_level = null, $metadata = array() ) {
 		$optimization_level = ( is_null( $optimization_level ) ) ? (int) get_imagify_option( 'optimization_level', 1 ) : (int) $optimization_level;
 
 		$id = $this->id;
@@ -197,19 +197,19 @@ class Imagify_Attachment extends Imagify_Abstract_Attachment {
 				'percent'            => 0,
 			)
 		);
-		
+
 		// To avoid issue with "original_size" at 0 in "_imagify_data"
 		if ( 0 === $this->get_stats_data( 'original_size' ) ) {
 			delete_post_meta( $id, '_imagify_data' );
 			delete_post_meta( $id, '_imagify_status' );
 			delete_post_meta( $id, '_imagify_optimization_level' );
 		}
-		
+
 		// Get file path & URL for original image
 		$attachment_path          = $this->get_original_path();
 		$attachment_url           = $this->get_original_url();
 		$attachment_original_size = $this->get_original_size( false );
-		
+
 		// Check if the attachment extension is allowed
 		if ( ! $id || ! wp_attachment_is_image( $id ) ) {
 			return;
@@ -219,7 +219,7 @@ class Imagify_Attachment extends Imagify_Abstract_Attachment {
 		if ( $this->is_optimized() && ( $this->get_optimization_level() == $optimization_level ) ) {
 			return;
 		}
-		
+
 		/**
 		 * Fires before optimizing an attachment.
 		 *
@@ -228,65 +228,65 @@ class Imagify_Attachment extends Imagify_Abstract_Attachment {
 		 * @param int $id The attachment ID
 		*/
 		do_action( 'before_imagify_optimize_attachment', $id );
-		
+
 		set_transient( 'imagify-async-in-progress-' . $id, true, 10 * MINUTE_IN_SECONDS );
-		
+
 		// Get the resize values for the original size
-        $resized          = false;
+    $resized          = false;
 		$do_resize        = get_imagify_option( 'resize_larger', false );
 		$resize_width     = get_imagify_option( 'resize_larger_w' );
 		$attachment_size  = @getimagesize( $attachment_path );
 
 		if ( $do_resize && isset( $attachment_size[0] ) && $resize_width < $attachment_size[0] ) {
-            $resized_attachment_path = $this->resize( $attachment_path, $attachment_size, $resize_width );
-            
-            if ( ! is_wp_error( $resized_attachment_path ) ) {
-                if ( get_imagify_option( 'backup', false ) ) {
-                    $backup_path      = get_imagify_attachment_backup_path( $attachment_path );
-                    $backup_path_info = pathinfo( $backup_path );
-            
-                    wp_mkdir_p( $backup_path_info['dirname'] );
-            
-                    // TO DO - check and send a error message if the backup can't be created
-                    @copy( $attachment_path, $backup_path );
-                    imagify_chmod_file( $backup_path );
-                }
-            
-                @rename( $resized_attachment_path, $attachment_path );
-                imagify_chmod_file( $attachment_path );
-            
-                // If resized temp file still exists, delete it
-                if ( file_exists( $resized_attachment_path ) ) {
-                    unlink( $resized_attachment_path );
-                }
-            
-                $resized = true;
-            }
+      $resized_attachment_path = $this->resize( $attachment_path, $attachment_size, $resize_width );
+
+      if ( ! is_wp_error( $resized_attachment_path ) ) {
+        if ( get_imagify_option( 'backup', false ) ) {
+          $backup_path      = get_imagify_attachment_backup_path( $attachment_path );
+          $backup_path_info = pathinfo( $backup_path );
+
+          wp_mkdir_p( $backup_path_info['dirname'] );
+
+          // TO DO - check and send a error message if the backup can't be created
+          @copy( $attachment_path, $backup_path );
+          imagify_chmod_file( $backup_path );
         }
-		
-		// Optimize the original size 
+
+        @rename( $resized_attachment_path, $attachment_path );
+        imagify_chmod_file( $attachment_path );
+
+        // If resized temp file still exists, delete it
+        if ( file_exists( $resized_attachment_path ) ) {
+          unlink( $resized_attachment_path );
+        }
+
+        $resized = true;
+      }
+    }
+
+		// Optimize the original size
 		$response = do_imagify( $attachment_path, array(
 			'optimization_level' => $optimization_level,
 			'context'            => 'wp',
 			'resized'            => $resized,
 			'original_size'		 => $attachment_original_size,
-		) );
+		) ); // Oh hey this looks like an important function.
 		$data 	  = $this->fill_data( $data, $response, $id, $attachment_url );
-		
+
 		// Save the optimization level
 		update_post_meta( $id, '_imagify_optimization_level', $optimization_level );
-		
+
 		if ( (bool) ! $data ) {
 			delete_transient( 'imagify-async-in-progress-' . $id );
 			return;
 		}
-		
+
 		// If we resized the original with success, we have to update the attachment metadata
-		// If not, WordPress keeps the old attachment size.		
+		// If not, WordPress keeps the old attachment size.
 		if ( $do_resize && $resized ) {
 			$this->update_metadata_size();
 		}
-		
+
 		// Optimize all thumbnails
 		if ( (bool) $sizes ) {
 			foreach ( $sizes as $size_key => $size_data ) {
@@ -301,7 +301,7 @@ class Imagify_Attachment extends Imagify_Abstract_Attachment {
 
 				$thumbnail_path = trailingslashit( dirname( $attachment_path ) ) . $size_data['file'];
 				$thumbnail_url  = trailingslashit( dirname( $attachment_url ) ) . $size_data['file'];
-				
+
 				// Optimize the thumbnail size
 				$response = do_imagify( $thumbnail_path, array(
 					'backup'             => false,
@@ -344,7 +344,7 @@ class Imagify_Attachment extends Imagify_Abstract_Attachment {
 		 * @param array  $optimized_data  The optimization data
 		*/
 		do_action( 'after_imagify_optimize_attachment', $id, $optimized_data );
-		
+
 		delete_transient( 'imagify-async-in-progress-' . $id );
 
 		return $optimized_data;
@@ -363,7 +363,7 @@ class Imagify_Attachment extends Imagify_Abstract_Attachment {
 		if ( ! $this->has_backup() ) {
 			return;
 		}
-		
+
 		$id              = $this->id;
 		$backup_path     = $this->get_backup_path();
 		$attachment_path = $this->get_original_path();
@@ -392,10 +392,10 @@ class Imagify_Attachment extends Imagify_Abstract_Attachment {
 		delete_post_meta( $id, '_imagify_data' );
 		delete_post_meta( $id, '_imagify_status' );
 		delete_post_meta( $id, '_imagify_optimization_level' );
-		
+
 		// Restore the original size in the metadata
 		$this->update_metadata_size();
-		
+
 		/**
 		 * Fires after restoring an attachment.
 		 *

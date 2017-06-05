@@ -352,7 +352,7 @@ function _do_wp_ajax_imagify_bulk_upload() {
 		$data['success'] = false;
 		$data['error']   = $fullsize_data['error'];
 
-		wp_send_json_error( $data ); // so this is not necessarily a problem...
+		wp_send_json_error( $data ); // so this is not necessarily a problem... // But it does trigger a wp_die()
 	}
 
 	error_log("gg");
@@ -366,6 +366,7 @@ function _do_wp_ajax_imagify_bulk_upload() {
 	$data['new_overall_size']      = $stats_data['optimized_size'];
 	$data['thumbnails']            = $attachment->get_optimized_sizes_count();
 
+	error_log("WHAT IT SHOULD BE: " . print_r($data, true));
 	wp_send_json_success( $data );
 }
 

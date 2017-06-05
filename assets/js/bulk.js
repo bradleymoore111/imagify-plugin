@@ -138,9 +138,12 @@ jQuery(function($){
 			imageUrl: imagifyBulk.labels.waitImageUrl
 		});
 
+		console.log(imagifyBulk.ajax_action);
+
+		// Gets unoptimized IDs I think.
 		$.get(ajaxurl+concat+"action="+imagifyBulk.ajax_action+"&optimization_level="+$optimization_level+"&imagifybulkuploadnonce="+$('#imagifybulkuploadnonce').val())
 		.done(function(response) {
-			if( !response.success ) {
+			if( !response.success ) { // Oh all this is for errors
 				$obj.removeAttr('disabled');
 				$obj.find('.dashicons').removeClass('rotate');
 
@@ -173,14 +176,16 @@ jQuery(function($){
 				});
 
 			} else {
-				swal.close();
+				swal.close(); // If success
 				var config = {
 					'lib': ajaxurl+concat+"action=imagify_bulk_upload&imagifybulkuploadnonce="+$('#imagifybulkuploadnonce').val(),
 					'images': response.data,
 					'context': imagifyBulk.ajax_context
-				}
+				};
 
-				//config['lib'] = "/wp-json/imagify/v1/bulk_upload?imagifybulkuploadnonce=" + $('#imagifybulkuploadnonce').val(), // makes it rest-like
+				console.log(response.data); // object containig a bunch of ids and urls
+
+				config['lib'] = "/wp-json/imagify/v1/bulk_upload?imagifybulkuploadnonce=" + $('#imagifybulkuploadnonce').val(); // makes it rest-like
 
 				console.log(config);
 				// return;
